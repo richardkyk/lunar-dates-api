@@ -38,7 +38,7 @@ type LunarDate struct {
 }
 
 func GetLunarDates(year int) ([]LunarDate, error) {
-	carbon.SetTimezone(time.Now().Location().String())
+	carbon.SetTimezone("Asia/Shanghai")
 	dates := make([]LunarDate, 0)
 
 	for month := 1; month <= 12; month++ {
