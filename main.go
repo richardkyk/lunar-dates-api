@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -38,34 +39,51 @@ type LunarDate struct {
 }
 
 func GetLunarDates(year int) ([]LunarDate, error) {
-	carbon.SetTimezone("Asia/Shanghai")
 	dates := make([]LunarDate, 0)
 
 	for month := 1; month <= 12; month++ {
+		// Creates a Carbon instance from the specified lunar date. The date is represented in UTC
 		first := carbon.CreateFromLunar(year, month, 1, false)
 		fifteenth := carbon.CreateFromLunar(year, month, 15, false)
 
-		yearString := fmt.Sprintf("%s年", GetGanZhiYear(first.Lunar().Year()))
-		monthString := lunarMonthReplacer.Replace(first.Lunar().ToMonthString())
+		// We need to convert the UTC date to the local time zone of Shanghai and strip the timestamp
+		firstDateString := carbon.Parse(first.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
+		fifteenthDateString := carbon.Parse(fifteenth.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
+
+		// We create a new Carbon instance using the local date so that we get the correct lunar date
+		firstLunar := carbon.Parse(firstDateString).Lunar()
+		fifteenthLunar := carbon.Parse(fifteenthDateString).Lunar()
+
+		yearString := fmt.Sprintf("%s年", GetGanZhiYear(firstLunar.Year()))
+		monthString := lunarMonthReplacer.Replace(firstLunar.ToMonthString())
 
 		dates = append(dates, LunarDate{
-			Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, first.Lunar().ToDayString()),
-			Date:  first.ToDateString(),
+			Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, firstLunar.ToDayString()),
+			Date:  firstDateString,
 		}, LunarDate{
-			Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, fifteenth.Lunar().ToDayString()),
-			Date:  fifteenth.ToDateString(),
+			Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, fifteenthLunar.ToDayString()),
+			Date:  fifteenthDateString,
 		})
 
-		if first.Lunar().LeapMonth() == month {
+		if firstLunar.LeapMonth() == month {
 			leapFirst := carbon.CreateFromLunar(year, month, 1, true)
 			leapFifteenth := carbon.CreateFromLunar(year, month, 15, true)
 
+			leapFirstDateString := carbon.Parse(leapFirst.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
+			leapFifteenthDateString := carbon.Parse(leapFifteenth.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
+
+			leapFirstLunar := carbon.Parse(leapFirstDateString).Lunar()
+			leapFifteenthLunar := carbon.Parse(leapFifteenthDateString).Lunar()
+
+			yearString := fmt.Sprintf("%s年", GetGanZhiYear(leapFirstLunar.Year()))
+			monthString := lunarMonthReplacer.Replace(leapFirstLunar.ToMonthString())
+
 			dates = append(dates, LunarDate{
-				Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, leapFirst.Lunar().ToDayString()),
-				Date:  leapFirst.ToDateString(),
+				Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, leapFirstLunar.ToDayString()),
+				Date:  leapFirstDateString,
 			}, LunarDate{
-				Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, leapFifteenth.Lunar().ToDayString()),
-				Date:  leapFifteenth.ToDateString(),
+				Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, leapFifteenthLunar.ToDayString()),
+				Date:  leapFifteenthDateString,
 			})
 		}
 	}
@@ -85,13 +103,13 @@ func main() {
 
 		dates, err := GetLunarDates(year)
 		if err != nil {
-			fmt.Println("Error:", err)
+			log.Println("Error:", err)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(dates); err != nil {
-			fmt.Println("Error:", err)
+			log.Println("Error:", err)
 			http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 		}
 	})
