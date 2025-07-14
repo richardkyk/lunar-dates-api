@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/dromara/carbon/v2"
 	"github.com/syumai/workers"
@@ -40,15 +41,30 @@ type LunarDate struct {
 
 func GetLunarDates(year int) ([]LunarDate, error) {
 	dates := make([]LunarDate, 0)
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		log.Println("Error:", err)
+		return nil, err
+	}
 
 	for month := 1; month <= 12; month++ {
 		// Creates a Carbon instance from the specified lunar date. The date is represented in UTC
 		first := carbon.CreateFromLunar(year, month, 1, false)
-		fifteenth := carbon.CreateFromLunar(year, month, 15, false)
-
 		// We need to convert the UTC date to the local time zone of Shanghai and strip the timestamp
-		firstDateString := carbon.Parse(first.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
-		fifteenthDateString := carbon.Parse(fifteenth.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
+		firstDateParsed, err := time.Parse(time.RFC3339, first.ToIso8601String())
+		if err != nil {
+			log.Println("Error:", err)
+			return nil, err
+		}
+		firstDateString := firstDateParsed.In(loc).Format("2006-01-02")
+
+		fifteenth := carbon.CreateFromLunar(year, month, 15, false)
+		fifteenthDateParsed, err := time.Parse(time.RFC3339, fifteenth.ToIso8601String())
+		if err != nil {
+			log.Println("Error:", err)
+			return nil, err
+		}
+		fifteenthDateString := fifteenthDateParsed.In(loc).Format("2006-01-02")
 
 		// We create a new Carbon instance using the local date so that we get the correct lunar date
 		firstLunar := carbon.Parse(firstDateString).Lunar()
@@ -67,10 +83,20 @@ func GetLunarDates(year int) ([]LunarDate, error) {
 
 		if firstLunar.LeapMonth() == month {
 			leapFirst := carbon.CreateFromLunar(year, month, 1, true)
-			leapFifteenth := carbon.CreateFromLunar(year, month, 15, true)
+			leapFirstDateParsed, err := time.Parse(time.RFC3339, leapFirst.ToIso8601String())
+			if err != nil {
+				log.Println("Error:", err)
+				return nil, err
+			}
+			leapFirstDateString := leapFirstDateParsed.In(loc).Format("2006-01-02")
 
-			leapFirstDateString := carbon.Parse(leapFirst.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
-			leapFifteenthDateString := carbon.Parse(leapFifteenth.ToIso8601String()).SetTimezone(carbon.Shanghai).ToDateString(carbon.Local)
+			leapFifteenth := carbon.CreateFromLunar(year, month, 15, true)
+			leapFifteenthDateParsed, err := time.Parse(time.RFC3339, leapFifteenth.ToIso8601String())
+			if err != nil {
+				log.Println("Error:", err)
+				return nil, err
+			}
+			leapFifteenthDateString := leapFifteenthDateParsed.In(loc).Format("2006-01-02")
 
 			leapFirstLunar := carbon.Parse(leapFirstDateString).Lunar()
 			leapFifteenthLunar := carbon.Parse(leapFifteenthDateString).Lunar()
