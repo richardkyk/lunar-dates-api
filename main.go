@@ -46,7 +46,7 @@ func GetLunarDates(year int) ([]LunarDate, error) {
 		fifteenth := carbon.CreateFromLunar(year, month, 15, false)
 
 		yearString := fmt.Sprintf("%s年", GetGanZhiYear(first.Lunar().Year()))
-		monthString := strings.ReplaceAll(first.Lunar().ToMonthString(), "腊", "十二")
+		monthString := lunarMonthReplacer.Replace(first.Lunar().ToMonthString())
 
 		dates = append(dates, LunarDate{
 			Lunar: fmt.Sprintf("%s%s%s", yearString, monthString, first.Lunar().ToDayString()),
