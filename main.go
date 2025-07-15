@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -130,6 +131,24 @@ func main() {
 		dates, err := GetLunarDates(year)
 		if err != nil {
 			log.Println("Error:", err)
+			return
+		}
+
+		// Check query param
+		if req.URL.Query().Get("csv") == "true" {
+			w.Header().Set("Content-Type", "text/csv")
+			w.Header().Set("Content-Disposition", "attachment;filename=dates.csv")
+
+			csvWriter := csv.NewWriter(w)
+			defer csvWriter.Flush()
+
+			// Optional: write header
+			csvWriter.Write([]string{"Date", "Lunar"})
+
+			// Write rows
+			for _, d := range dates {
+				csvWriter.Write([]string{d.Date, d.Lunar})
+			}
 			return
 		}
 
