@@ -136,8 +136,8 @@ func main() {
 
 		// Check query param
 		if req.URL.Query().Get("csv") == "true" {
-			w.Header().Set("Content-Type", "text/csv")
-			w.Header().Set("Content-Disposition", "attachment;filename=dates.csv")
+			w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+			// w.Header().Set("Content-Disposition", "attachment;filename=dates.csv")
 
 			csvWriter := csv.NewWriter(w)
 			defer csvWriter.Flush()
@@ -152,7 +152,7 @@ func main() {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		if err := json.NewEncoder(w).Encode(dates); err != nil {
 			log.Println("Error:", err)
 			http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
